@@ -84,7 +84,8 @@ class CleanModelLoader:
         device_map: str = "auto",
         torch_dtype: Optional[torch.dtype] = None,
         local_files_only: bool = False,
-        trust_remote_code: bool = False
+        trust_remote_code: bool = False,
+        strict: bool = True
     ):
         """
         Initialize CleanModelLoader.
@@ -97,6 +98,11 @@ class CleanModelLoader:
             torch_dtype: Optional dtype override
             local_files_only: Use only local cached files
             trust_remote_code: Whether to trust remote code (Qwen needs False)
+            strict: Abort (raise RuntimeError) on special-token delta or
+                instruction-sentinel failures, per CONTAMINATION_GUARD_SPEC and
+                the runbook stop conditions. strict=False downgrades these to
+                warnings (recorded in provenance). Template-token contamination
+                always aborts regardless of this flag.
         """
         self.model_name = model_name
         self.load_in_4bit = load_in_4bit
@@ -105,6 +111,7 @@ class CleanModelLoader:
         self.torch_dtype = torch_dtype or torch.bfloat16
         self.local_files_only = local_files_only
         self.trust_remote_code = trust_remote_code
+        self.strict = strict
 
         # Will be populated during load
         self.model = None
@@ -211,10 +218,18 @@ class CleanModelLoader:
         )
 
         if len(tokens_with_special) != len(tokens_no_special):
-            logger.warning(
-                f"⚠️  add_special_tokens adds {len(tokens_with_special) - len(tokens_no_special)} tokens. "
-                f"This is expected for models with BOS/EOS tokens."
+            delta_msg = (
+                f"add_special_tokens adds {len(tokens_with_special) - len(tokens_no_special)} tokens. "
+                f"CONTAMINATION_GUARD_SPEC requires zero delta for the supported "
+                f"Qwen base models (no BOS/EOS injection)."
             )
+            if self.strict:
+                raise RuntimeError(
+                    f"🚨 GUARD FAILURE (delta check): {delta_msg}\n"
+                    "Pass strict=False to downgrade this to a warning "
+                    "(e.g. for models that legitimately add BOS/EOS)."
+                )
+            logger.warning(f"⚠️  {delta_msg} Continuing (strict=False).")
 
         # Check 3: Verify first 100 chars of encoding don't contain template markers
         first_tokens = tokens_no_special[:20]
@@ -327,23 +342,38 @@ class CleanModelLoader:
             status = "✅" if passed else "⚠️"
             logger.info(f"{status} {test['name']}: {response[:50]}...")
 
+        # Store results before any abort so they remain inspectable
+        self.sentinel_results = results
+
         # Check if all critical tests passed
         failed_tests = [r for r in results if not r["passed"]]
 
         if any(t["name"].startswith("instruction_") for t in failed_tests):
-            logger.warning(
-                "⚠️  Sentinel tests suggest model may be instruction-tuned or contaminated!\n"
+            sentinel_msg = (
+                "Sentinel tests suggest model may be instruction-tuned or contaminated!\n"
                 "This could indicate:\n"
                 "1. Wrong model loaded (should be base, not instruct)\n"
                 "2. Chat template contamination still present\n"
-                "3. Model has some instruction-following capability"
+                "3. Model has some instruction-following capability\n"
+                f"Failed sentinels: {[t['name'] for t in failed_tests]}"
             )
-            # Don't fail hard - just warn, as base models can vary
+            if self.strict:
+                # CONTAMINATION_GUARD_SPEC and the runbook stop conditions
+                # treat sentinel failure as a halt. Note: the Stage 1 findings
+                # showed modern base models (e.g. Qwen2.5-32B) partially follow
+                # instructions, so a failure here may reflect genuine base-model
+                # capability rather than contamination — that determination must
+                # be made deliberately, via strict=False, not silently.
+                raise RuntimeError(
+                    f"🚨 SENTINEL FAILURE: {sentinel_msg}\n"
+                    "Per CONTAMINATION_GUARD_SPEC / runbook stop conditions, this run halts.\n"
+                    "If you have verified the model is the intended base model, pass "
+                    "strict=False (train_stage1_sft.py: --allow-sentinel-failures) to continue; "
+                    "the failure is recorded in provenance."
+                )
+            logger.warning(f"⚠️  {sentinel_msg}\nContinuing (strict=False).")
 
         logger.info(f"✅ Sentinel tests completed: {len([r for r in results if r['passed']])}/{len(results)} passed")
-
-        # Store results in provenance
-        self.sentinel_results = results
 
     def _gather_provenance(self) -> Dict[str, Any]:
         """Gather provenance metadata."""
@@ -371,6 +401,7 @@ class CleanModelLoader:
             "torch_dtype": str(self.torch_dtype),
             "template_disabled": True,
             "add_special_tokens": False,
+            "strict": self.strict,
             "sentinel_tests_passed": all(r["passed"] for r in self.sentinel_results),
             "sentinel_results": self.sentinel_results,
             "device_map": str(self.device_map)

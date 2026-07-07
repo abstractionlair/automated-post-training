@@ -13,7 +13,8 @@ Workflow:
 6. Run deterministic evaluation (base vs SFT)
 7. Save training manifest with full provenance
 
-Gate: Dataset must have passed QC to proceed.
+Gate: Dataset must have passed QC to proceed. The gate aborts on missing or
+failed QC; --force bypasses it (logged and recorded in the training manifest).
 
 Usage:
     python train_stage1_sft.py \
@@ -70,7 +71,9 @@ class Stage1SFTTrainer:
         self,
         data_path: Path,
         output_dir: Path,
-        model_name: str = "Qwen/Qwen2.5-32B"
+        model_name: str = "Qwen/Qwen2.5-32B",
+        force: bool = False,
+        allow_sentinel_failures: bool = False
     ):
         """
         Initialize SFT trainer.
@@ -79,10 +82,16 @@ class Stage1SFTTrainer:
             data_path: Path to SFT dataset JSONL
             output_dir: Output directory for checkpoints
             model_name: Base model name or path
+            force: Bypass the QC hard gate (train despite failed/missing QC).
+                Escape hatch only — the bypass is logged and recorded.
+            allow_sentinel_failures: Downgrade contamination sentinel failures
+                in CleanModelLoader from abort to warning.
         """
         self.data_path = Path(data_path)
         self.output_dir = Path(output_dir)
         self.model_name = model_name
+        self.force = force
+        self.allow_sentinel_failures = allow_sentinel_failures
 
         # Create output directories
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -138,12 +147,30 @@ class Stage1SFTTrainer:
                 qc = json.load(f)
 
             if not qc.get('thresholds_passed', False):
-                logger.warning(
-                    "⚠️  WARNING: QC summary indicates thresholds did not pass!\n"
-                    "Training anyway, but results may be suboptimal."
-                )
+                if self.force:
+                    logger.warning(
+                        "⚠️  WARNING: QC summary indicates thresholds did not pass!\n"
+                        "--force given: training anyway, but results may be suboptimal."
+                    )
+                else:
+                    raise RuntimeError(
+                        f"🚨 GATE FAILURE: QC summary indicates thresholds did not pass: {qc_path}\n"
+                        "stage1_sft_spec.md requires passed QC as a hard gate.\n"
+                        "Fix the dataset (or rerun QC), or pass --force to train anyway."
+                    )
         else:
-            logger.warning("⚠️  No QC summary found - cannot verify dataset quality")
+            if self.force:
+                logger.warning(
+                    "⚠️  No QC summary found - cannot verify dataset quality. "
+                    "--force given: training anyway."
+                )
+            else:
+                raise RuntimeError(
+                    "🚨 GATE FAILURE: No QC summary found - cannot verify dataset quality.\n"
+                    f"Looked for qc_summary_merged.json next to {self.data_path} and under artifacts/scale/.\n"
+                    "stage1_sft_spec.md requires a QC summary as a hard gate.\n"
+                    "Generate the QC summary, or pass --force to train anyway."
+                )
 
         # Count examples
         with open(self.data_path) as f:
@@ -160,7 +187,8 @@ class Stage1SFTTrainer:
         loader = CleanModelLoader(
             model_name=self.model_name,
             load_in_4bit=True,  # 4-bit for QLoRA
-            device_map="auto"
+            device_map="auto",
+            strict=not self.allow_sentinel_failures
         )
 
         self.model, self.tokenizer, self.loader_provenance = loader.load()
@@ -459,6 +487,10 @@ class Stage1SFTTrainer:
         manifest['dataset_path'] = str(self.data_path)
         manifest['hyperparams'] = hyperparams
         manifest['adapter_path'] = str(adapter_path)
+        manifest['gate_overrides'] = {
+            'force': self.force,
+            'allow_sentinel_failures': self.allow_sentinel_failures
+        }
 
         manifest_path = self.artifacts_dir / "training_manifest.json"
         with open(manifest_path, 'w') as f:
@@ -549,13 +581,31 @@ def main():
         help="LoRA dropout (default: 0.1)"
     )
 
+    # Gate escape hatches
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Bypass the QC hard gate: train even if the QC summary is missing "
+             "or thresholds did not pass. The bypass is logged and recorded in "
+             "the training manifest."
+    )
+    parser.add_argument(
+        "--allow-sentinel-failures",
+        action="store_true",
+        help="Downgrade contamination sentinel failures in CleanModelLoader "
+             "from abort to warning. Per runbook stop conditions, sentinel "
+             "failures should normally halt the run."
+    )
+
     args = parser.parse_args()
 
     # Create trainer
     trainer = Stage1SFTTrainer(
         data_path=Path(args.data),
         output_dir=Path(args.output),
-        model_name=args.model
+        model_name=args.model,
+        force=args.force,
+        allow_sentinel_failures=args.allow_sentinel_failures
     )
 
     # Run training

@@ -12,6 +12,13 @@ Preconditions (hard gates)
 - Data generation pilot and scale have passed QC thresholds.
 - Dataset manifest exists with provenance and QC summary.
 - Contamination guards were applied in generation and verified.
+- Enforcement: scripts/train_stage1_sft.py aborts when the QC summary is
+  missing or thresholds did not pass; CleanModelLoader aborts on contamination
+  guard failures. Explicit escape hatches exist (--force for the QC gate,
+  --allow-sentinel-failures for loader sentinels); any bypass is logged and
+  recorded in the training manifest. (Historical note: before 2026-07 these
+  gates were implemented as warnings only — runs from that period did not have
+  them enforced.)
 
 Environment
 - Same pod conventions as data generation (see runbooks/POD_OPERATIONS.md).
