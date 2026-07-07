@@ -80,6 +80,8 @@ Each stage produces a functional model that helps generate training data for the
 
 This is a personal research project exploring automated post-training methods. It's heavily AI-assisted (Claude Code for implementation, Gemini and Codex for review), which is itself an experiment in human-AI collaboration for research.
 
+To be more specific about the split: the thesis — generating post-training data by smart-prompting base models — and the orchestration and document-DAG design are mine. Codex served as the designated methodologist under a role charter I wrote (see [codex.md](codex.md)); the single-token logprob critic was its recommendation, not mine. The code is model-written under my direction, and my engagement shows up in validity catches rather than diffs — spotting the Claude-to-Qwen chat-template contamination ([/docs/BASE_MODEL_TRUTH.md](/docs/BASE_MODEL_TRUTH.md)) is the representative example, and catches like it drove the v1-to-v2 pivots. The specs, role charters, and reviews are committed in the repo, so the collaboration is inspectable rather than just asserted.
+
 **Architecture**: V2 uses autonomous agentic sessions where Claude Code builds implementation from specs with minimal human intervention. See [CLAUDE.md](CLAUDE.md) for details.
 
 ---
