@@ -33,11 +33,14 @@ See `/status/RUNPOD_STATUS.md` for current infrastructure state and connection d
 
 ## Training Framework
 
-**Method**: QLoRA (4-bit quantized) + DPO (Direct Preference Optimization)
+**Method**: QLoRA (4-bit quantized) SFT. DPO (Direct Preference Optimization)
+was planned for later stages but is **not implemented** — no DPO training code
+or preference-pair generation exists in `scripts/`. All active training code is
+SFT-only (`scripts/train_stage1_sft.py`).
 
 **Libraries**:
-- **Unsloth**: Efficient training with memory optimization
-- **TRL** (Transformer Reinforcement Learning): DPO implementation
+- **TRL** (Transformer Reinforcement Learning): SFT training (`SFTTrainer`); its DPO support is not yet used
+- **PEFT**: LoRA adapters
 - **PyTorch**: Base framework
 - **Transformers**: Model loading and inference
 
@@ -52,7 +55,8 @@ See `/status/RUNPOD_STATUS.md` for current infrastructure state and connection d
 
 **Constitutional Principles**: HHH-focused (Helpful, Harmless, Honest)
 - Defined in `/constitution.yaml`
-- Used for critique generation and preference labeling
+- Aspirational: intended for critique generation and preference labeling in
+  future stages, but no active script loads it yet (see the note in README.md)
 
 **Content Filtering**: Llama Guard 3-8B
 - Filters harmful content from generated data
@@ -130,7 +134,7 @@ See `/status/RUNPOD_STATUS.md` for current infrastructure state and connection d
 
 **Version Tracking**: Log all package versions in run directories
 - Transformers version
-- Unsloth version
+- PEFT version
 - TRL version
 - PyTorch version
 
