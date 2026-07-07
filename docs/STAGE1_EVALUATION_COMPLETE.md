@@ -1,3 +1,18 @@
+> ## ⚠️ SUPERSEDED — RESULTS INVALID
+>
+> The results below — including the "GATE PASSED" status, the +18.3pp lift, and
+> p = 2.06×10⁻¹² — were invalidated by the project's own validity review the same
+> day: the evaluation's scoring heuristic was broken (it capped response length at
+> 500 characters, mislabeling compliant responses as failures), so the apparent
+> improvement mainly reflected shorter generations, not better
+> instruction-following. Do not cite these numbers.
+>
+> See [STAGE1_FINDINGS_AND_PIVOT.md](STAGE1_FINDINGS_AND_PIVOT.md) for the
+> invalidation and the revised plan, and
+> [reviews/responses/20251012_stage1_evaluation_validity_codex.md](../reviews/responses/20251012_stage1_evaluation_validity_codex.md)
+> for the review that found the scoring bug. This document is preserved unchanged
+> below as a historical record.
+
 # Stage 1 SFT Evaluation - COMPLETE
 
 **Date**: 2025-10-12

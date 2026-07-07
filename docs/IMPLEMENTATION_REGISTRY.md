@@ -416,6 +416,26 @@ V2 clean start - no legacy code to migrate.
 - ✅ Benjamini-Hochberg correction for multiple comparisons
 - ✅ Complete metadata and provenance
 
+> ## ⚠️ Correction — these compliance claims were overstated
+>
+> The "100%" entries above and the "100% spec compliance" / "No technical debt"
+> claims in the V2 comparison below do not hold up against the repo's own record:
+>
+> - The Stage 1 evaluation implementation, though it matched the spec's
+>   statistical machinery, used a broken scoring heuristic that invalidated the
+>   results. See the project's own validity review
+>   ([reviews/responses/20251012_stage1_evaluation_validity_codex.md](../reviews/responses/20251012_stage1_evaluation_validity_codex.md))
+>   and [STAGE1_FINDINGS_AND_PIVOT.md](STAGE1_FINDINGS_AND_PIVOT.md).
+> - The spec's "hard gates" (stage1_sft_spec.md) were implemented as warnings in
+>   `scripts/train_stage1_sft.py`, and contamination sentinel failures in
+>   `scripts/utils/clean_model_loader.py` warned instead of aborting as
+>   CONTAMINATION_GUARD_SPEC requires. (Corrected in 2026-07: these now abort by
+>   default, with explicit escape hatches.)
+> - The "CI grep checks" referenced for DRY enforcement were never committed —
+>   the repo contains no CI configuration or tests.
+>
+> The claims are preserved below as a record of what was believed at the time.
+
 ---
 
 ## V2 vs V1 Comparison
