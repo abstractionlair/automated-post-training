@@ -16,7 +16,7 @@ In some conversations about this recently, Claude indicated that if it had worke
 
 Below, Claude describes the project based on the code, docs, and maybe logs. The work was done mostly in Claude Code, maybe with some help from Codex, and I think the logs were available.
 
-This project explores: **How much post-training can we automate using the observation the base models "know stuff"?** Beyond just safety.
+This project explores: **How much post-training can we automate using the observation that base models "know stuff"?** Beyond just safety.
 
 Can a base model generate its own training data, critique itself using principles it already understands, and bootstrap its way to aligned behavior—with minimal human intervention?
 
