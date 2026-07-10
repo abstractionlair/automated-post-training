@@ -10,13 +10,13 @@ This wasn't successful (but it was educational). I do think with what I know now
 
 The goal I set was to fully post-train a model starting with only a base model. No other model to distill from, etc. And no additional, outside data. The "no other model" restriction is nuanced, however. I'd allow the help of current, frontier models for writing code and defining procedures. But then I wanted it to be possible to take just that code, the procedures, and a base model and from that produce a real (small) helpful and harmless assistant.
 
-In some conversations about this recently, Claude indicated that if it had worked, at the time I started it, it might have been not too far behind proper research. For each pipeline stage, Claude was able to find a published example of doing it with no external data, but nothing that went end-to-end without that. Finding that a nominally-base model actually had some instruction following behavior and then writing a test for it which could be run before future runs of the experiment might be interesting to someone.
+In some conversations about this recently, Claude indicated that if it had worked, at the time I started it, it might have been not too far behind proper research. For each pipeline stage, Claude was able to find a published example of doing it with no or nearly no external data, but nothing that went end-to-end without that. Finding that a nominally-base model actually had some instruction following behavior and then writing a test for it which could be run before future runs of the experiment might be interesting to someone.
 
 ## Introduction
 
 Below, Claude describes the project based on the code, docs, and maybe logs. The work was done mostly in Claude Code, maybe with some help from Codex, and I think the logs were available.
 
-This project explores: **How much post-training can we automate using that observation?** Beyond just safety.
+This project explores: **How much post-training can we automate using the observation the base models "know stuff"?** Beyond just safety.
 
 Can a base model generate its own training data, critique itself using principles it already understands, and bootstrap its way to aligned behavior—with minimal human intervention?
 
