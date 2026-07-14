@@ -1,5 +1,7 @@
 # Automated Post-Training Experiment
 
+*See [PROVENANCE.md](PROVENANCE.md) for this repo's public-release date and real project timeframe.*
+
 ## Background and Motivation
 
 I found Constitutional AI really interesting when I read about it. But over time, as it sat in my mind, it changed my understanding of base models; what they already "know", and are capable of; what's latent in them. I don't mean that I was seeing anything people in the field didn't already know, nor that Constitutional AI was what initially demonstrated these things. It was just the trigger for me. (For all I know it is what introduced the idea into the field. Oh, I know who I could ask about that.)
