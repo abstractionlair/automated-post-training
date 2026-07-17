@@ -24,6 +24,18 @@ Can a base model generate its own training data, critique itself using principle
 
 ---
 
+## What was built and run
+
+Stage 1 of the pipeline was built and run end to end in October 2025 — data generation, SFT training, and evaluation — with dated run records committed in this repo:
+
+- **Data generation** — [`scripts/generate_stage1_pilot_data.py`](scripts/generate_stage1_pilot_data.py) and [`scripts/generate_stage1_scale_data.py`](scripts/generate_stage1_scale_data.py) generated instruction-following SFT data from the base model itself (base-model completion plus logprob filtering); the final cleaned training set was 5,467 examples. The data went through four dated Codex gate reviews in [`reviews/`](reviews/): 2025-10-08 NO-GO, 2025-10-10 MODIFY, 2025-10-11 MODIFY, 2025-10-13 GO.
+- **Training** — [`scripts/train_stage1_sft.py`](scripts/train_stage1_sft.py) ran QLoRA SFT on Qwen/Qwen2.5-32B (4-bit nf4, 16,777,216 trainable parameters, 1,368 steps, ~1.2 hours on one L40S), completed 2025-10-12. Run record: [`docs/STAGE1_SFT_TRAINING_COMPLETE.md`](docs/STAGE1_SFT_TRAINING_COMPLETE.md).
+- **Evaluation** — [`scripts/evaluate_stage1_sft.py`](scripts/evaluate_stage1_sft.py) compared base vs. SFT on a 300-instruction held-out set with a McNemar gate. The first-pass "gate passed" result was invalidated the same day by the project's own validity review, which found the scoring heuristic broken ([`reviews/responses/20251012_stage1_evaluation_validity_codex.md`](reviews/responses/20251012_stage1_evaluation_validity_codex.md)); the corrected reading is that the base model already followed instructions and SFT gave no improvement. Records: [`docs/STAGE1_EVALUATION_COMPLETE.md`](docs/STAGE1_EVALUATION_COMPLETE.md), [`docs/STAGE1_FINDINGS_AND_PIVOT.md`](docs/STAGE1_FINDINGS_AND_PIVOT.md), and the [note at the bottom of this README](#note-on-the-reported-result-vs-later-code-fixes) on a loss-masking fix that postdates the result.
+
+Datasets and model checkpoints are not committed; the scripts, specs, gate reviews, and dated run records are.
+
+---
+
 ## The Approach
 
 Instead of jumping straight to full Constitutional AI, we teach capabilities progressively:
